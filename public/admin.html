@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Phiếu Khảo Sát</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(44, 62, 80, 0.95); display: flex; 
+            justify-content: center; align-items: center; z-index: 1000;
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 12px; width: 100%; max-width: 380px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center;
+        }
+        .login-box h2 { margin-bottom: 25px; color: #2c3e50; }
+        .login-box input {
+            width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 16px; box-sizing: border-box;
+        }
+        .login-box button {
+            width: 100%; padding: 12px; background: #3498db; color: white;
+            border: none; border-radius: 6px; font-size: 16px; cursor: pointer;
+        }
+        .error-msg { color: #e74c3c; margin-bottom: 15px; font-size: 14px; }
+        .hidden { display: none !important; }
+
+        /* Admin Page Style */
+        .admin-nav {
+            padding: 10px 0; border-bottom: 1px solid #ddd; margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .admin-nav a { text-decoration: none; color: #3498db; font-weight: bold; }
+        
+        .stats-box {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 25px;
+        }
+        .stat-card {
+            background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center; border-top: 4px solid #3498db;
+        }
+        .stat-card h3 { color: #7f8c8d; font-size: 14px; margin-bottom: 10px; }
+        .stat-card .val { font-size: 36px; font-weight: bold; color: #2c3e50; }
+
+        .file-table {
+            width: 100%; border-collapse: collapse; background: white;
+            border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .file-table th, .file-table td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        .file-table th { background: #f8f9fa; color: #2c3e50; font-weight: 600; }
+        
+        .btn-action {
+            padding: 8px 14px; border-radius: 5px; border: none; cursor: pointer;
+            text-decoration: none; display: inline-block; font-size: 13px; color: white;
+            transition: all 0.2s;
+        }
+        .btn-push { background: #f39c12; margin-right: 5px; }
+        .btn-push:hover { background: #e67e22; }
+        .btn-pushed { background: #95a5a6; cursor: default; margin-right: 5px; opacity: 0.7; }
+        .btn-download { background: #27ae60; margin-right: 5px; }
+        .btn-delete { background: #e74c3c; }
+        
+        .status-tag { font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 500; }
+        .status-pushed { background: #e8f5e9; color: #2e7d32; }
+        .status-pending { background: #fff3e0; color: #ef6c00; }
+
+        .loading-spinner {
+            display: inline-block; width: 12px; height: 12px; border: 2px solid #fff;
+            border-top: 2px solid transparent; border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin-right: 5px;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body style="background: #f8fafc;">
+    <!-- LOGIN SECTION -->
+    <div id="loginSection" class="login-overlay">
+        <div class="login-box">
+            <h2>Hệ Thống Admin</h2>
+            <div id="loginError" class="error-msg hidden"></div>
+            <input type="text" id="username" placeholder="Tên đăng nhập" required>
+            <input type="password" id="password" placeholder="Mật khẩu" required>
+            <button id="loginBtn">Đăng Nhập Quản Lý</button>
+        </div>
+    </div>
+
+    <!-- ADMIN SECTION -->
+    <div id="adminSection" class="container hidden" style="max-width: 1000px; padding: 40px 20px;">
+        <div class="admin-nav">
+            <a href="index.html">← Quay lại mẫu khảo sát</a>
+            <button onclick="window.location.reload()" style="background:none; border:none; color:#7f8c8d; cursor:pointer;">Làm mới trang ↻</button>
+        </div>
+        
+        <header class="form-header" style="margin-bottom: 30px;">
+            <h1>QUẢN LÝ PHIẾU KHẢO SÁT</h1>
+            <p>Dữ liệu phiếu thu thập nội bộ & Trạng thái gửi Bộ Y Tế</p>
+        </header>
+
+        <div class="stats-box">
+            <div class="stat-card">
+                <h3>Tổng số phiếu hiện có</h3>
+                <div class="val" id="totalFiles">0</div>
+            </div>
+            <div class="stat-card" style="border-top-color: #f39c12;">
+                <h3>Còn thiếu (để đạt 11 phiếu)</h3>
+                <div class="val" id="remaining">11</div>
+            </div>
+        </div>
+
+        <table class="file-table">
+            <thead>
+                <tr>
+                    <th>Tên Phiếu</th>
+                    <th>Ngày Thu Thập</th>
+                    <th>Bộ Y Tế</th>
+                    <th style="width: 320px;">Thao Tác Quản Lý</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+                <!-- Data will be loaded via JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const LIMIT = 11;
+        const loginBtn = document.getElementById('loginBtn');
+        const loginSection = document.getElementById('loginSection');
+        const adminSection = document.getElementById('adminSection');
+
+        async function checkSession() {
+            try {
+                const res = await fetch('/api/admin/files');
+                if (res.ok) showAdmin();
+            } catch (e) { }
+        }
+
+        loginBtn.addEventListener('click', async () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                if (res.ok) showAdmin();
+                else {
+                    const err = document.getElementById('loginError');
+                    err.textContent = 'Sai tài khoản hoặc mật khẩu';
+                    err.classList.remove('hidden');
+                }
+            } catch (e) { alert('Lỗi hệ thống'); }
+        });
+
+        function showAdmin() {
+            loginSection.classList.add('hidden');
+            adminSection.classList.remove('hidden');
+            loadFiles();
+        }
+
+        async function loadFiles() {
+            try {
+                const res = await fetch('/api/admin/files');
+                const files = await res.json();
+                
+                const tbody = document.getElementById('fileListBody');
+                const totalEl = document.getElementById('totalFiles');
+                const remEl = document.getElementById('remaining');
+                
+                tbody.innerHTML = '';
+                totalEl.textContent = files.length;
+                remEl.textContent = Math.max(0, LIMIT - files.length);
+
+                if (files.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 40px; color:#95a5a6;">Chưa có phiếu khảo sát nào mới nhận được.</td></tr>';
+                    return;
+                }
+
+                files.forEach(f => {
+                    const tr = document.createElement('tr');
+                    const statusTag = f.pushed 
+                        ? '<span class="status-tag status-pushed">✓ Đã gửi Bộ</span>' 
+                        : '<span class="status-tag status-pending">● Chờ gửi</span>';
+                    
+                    const pushBtn = f.pushed 
+                        ? '<button class="btn-action btn-pushed" disabled>Đã đẩy xong</button>'
+                        : `<button class="btn-action btn-push" id="p-btn-${f.name}" onclick="pushToBYT('${f.name}')">Đẩy sang Bộ Y Tế</button>`;
+
+                    tr.innerHTML = `
+                        <td style="font-weight:500;">${f.name}</td>
+                        <td style="color:#7f8c8d; font-size:14px;">${new Date(f.date).toLocaleString('vi-VN')}</td>
+                        <td>${statusTag}</td>
+                        <td>
+                            ${pushBtn}
+                            <a href="/api/admin/download/${f.name}" class="btn-action btn-download" download>Tải Excel</a>
+                            <button onclick="deleteFile('${f.name}')" class="btn-action btn-delete">Xóa</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function pushToBYT(name) {
+            const btn = document.getElementById(`p-btn-${name}`);
+            if(!confirm('Xác nhận: Bot sẽ thay bạn đăng nhập và đẩy phiếu này sang Bộ Y Tế?')) return;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span> Đang đẩy...';
+            
+            try {
+                const res = await fetch(`/api/admin/push/${name}`, { method: 'POST' });
+                if (res.ok) {
+                    alert('Phiếu đã được nộp thành công lên Bộ Y Tế!');
+                    loadFiles();
+                } else {
+                    const data = await res.json();
+                    alert('Sự cố: ' + (data.error || 'Bot gặp lỗi khi nộp phiếu'));
+                    btn.disabled = false;
+                    btn.innerHTML = 'Đẩy sang Bộ Y Tế';
+                }
+            } catch (e) {
+                alert('Lỗi kết nối máy chủ');
+                btn.disabled = false;
+                btn.innerHTML = 'Đẩy sang Bộ Y Tế';
+            }
+        }
+
+        async function deleteFile(name) {
+            if(!confirm('Bạn có chắc muốn xóa vĩnh viễn phiếu này?')) return;
+            await fetch(`/api/admin/delete/${name}`, { method: 'DELETE' });
+            loadFiles();
+        }
+
+        checkSession();
+    </script>
+</body>
+</html>
