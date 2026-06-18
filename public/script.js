@@ -72,14 +72,14 @@ const surveyData = [
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Check if survey is full (12 files)
-    try {
-        const checkRes = await fetch('/api/check-limit');
-        const checkStatus = await checkRes.json();
-        if (checkStatus.isFull) {
-            window.location.href = 'finished.html';
-            return;
-        }
-    } catch (e) { console.error('Limit check failed'); }
+   // try {
+     //   const checkRes = await fetch('/api/check-limit');
+     //   const checkStatus = await checkRes.json();
+     //   if (checkStatus.isFull) {
+       //     window.location.href = 'finished.html';
+      //      return;
+     //   }
+ //   } catch (e) { console.error('Limit check failed'); }
 
     // Determine dynamically generated list
     const tbody = document.getElementById('evaluation-body');
